@@ -43,6 +43,8 @@ d$weekday <- strftime(d$Date, "%A")
 
 d %>% mutate(miss = abs((Actual.TMR..lbs.)-as.numeric(TMR.Target))) %>%
   filter(Date > "2019-02-19") %>%
+  mutate(weekday = factor(weekday,
+                          levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))) %>%
   ggplot(aes(miss, color = weekday))+
   geom_histogram(bins = 20)+
   facet_wrap(~weekday)+
