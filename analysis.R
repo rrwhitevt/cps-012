@@ -1,4 +1,10 @@
-setwd("C:/Users/Doug/Documents/PhD Papers/Tanner/files")
+setwd("./files")
+
+library(googlesheets)
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+
 
 fl <- list.files()
 
@@ -33,9 +39,7 @@ d <- merge(out, t, by=c("Date", "Animal.ID"))
 
 ### Some plots
 
-library(ggplot2)
-library(ggthemes)
-library(dplyr)
+d$weekday <- strftime(d$Date, "%A")
 
 d %>% mutate(miss = abs((Actual.TMR..lbs.)-as.numeric(TMR.Target))) %>%
   filter(Date > "2019-02-19") %>%
