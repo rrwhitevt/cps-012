@@ -37,28 +37,26 @@ t$Date <- as.Date(t$Date, "%m-%d-%Y")
 d <- merge(out, t, by=c("Date", "Animal.ID"))
 
 
-### Some plots
+head(d)
 
-d$weekday <- strftime(d$Date, "%A")
-
-d %>% mutate(miss = abs((Actual.TMR..lbs.)-as.numeric(TMR.Target))) %>%
-  filter(Date > "2019-02-19") %>%
-  mutate(weekday = factor(weekday,
-                          levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))) %>%
-  ggplot(aes(miss, color = weekday))+
-  geom_histogram(bins = 20)+
-  facet_wrap(~weekday)+
-  theme_fivethirtyeight()+
-theme(legend.position = 'none')
-
-
-d %>% mutate(miss = abs((Actual.TMR..lbs.)-as.numeric(TMR.Target))) %>%
-  filter(Date > "2019-02-19") %>%
-  group_by(weekday) %>%
-  summarise(m = mean(miss, na.rm = T)) %>% 
-  ungroup() %>%
-  mutate(weekday = factor(weekday,
-                          levels = c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'))) %>%
-  ggplot(aes(weekday,m))+geom_col() + ylab("Average Absolute Feeding Error (lbs)") +
-  theme_classic()+
-  theme(axis.title.x = element_blank(), text = element_text(size = 14))
+d %>% 
+  mutate(DIM = as.numeric(DIM),
+         MY.m1 = as.numeric(as.character(MY.m1)),
+         MY.m2 = as.numeric(as.character(MY.m2)),
+         MY = as.numeric(as.character(MY)),
+         Period = as.factor(Period),
+         Top.Dress = as.factor(Top.Dress),
+         TMR.Adjustment = as.numeric(TMR.Adjustment),
+         NEl.Target = as.numeric(NEl.Target),
+         TMR.Target = as.numeric(TMR.Target)) %>%
+  # 2x single milk measurements
+  mutate(MY.adj = ifelse(is.na(MY.m1+MY.m2),
+                         (ifelse(is.na(MY.m1),0,MY.m1)+ifelse(is.na(MY.m2),0,MY.m2))*2, MY),
+         MY.adj = replace(MY.adj, MY.adj == 0, NA)) %>% 
+  mutate(MY.shift = lead(MY.adj, 1)) %>%
+  group_by(Animal.ID) %>%
+  mutate(MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
+  ggplot(aes(Date, MY.pct.max, color = Top.Dress)) +
+  geom_point() + 
+  facet_wrap(~Animal.ID)
+  
