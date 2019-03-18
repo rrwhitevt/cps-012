@@ -43,7 +43,7 @@ d <- merge(d, cowAtts[,c("ID","LacNO", "BW", "X.Fat", "X.Prt")], by.x = "Animal.
 
 
 
-d %>% 
+d2 <- d %>% 
   mutate(DIM = as.numeric(DIM),
          MY.m1 = as.numeric(as.character(MY.m1)),
          MY.m2 = as.numeric(as.character(MY.m2)),
@@ -65,7 +65,14 @@ d %>%
   mutate(MY.shift = lead(MY.adj, 1),
          Refusal.shift= lead(Refusal..lbs.,1),
          Eff = (Total.Actual-Refusal.shift)/MY.shift) %>%
-  data.frame() %>%
+  data.frame() 
+
+library(lme4)
+
+m1 <- lmer(Eff ~ Top.Dress + Top.Dress.pct + (1|LacNO)+ (1|Animal.ID), data = d2)
+summary(m1)
+
+%>%
   group_by(Animal.ID) %>%
   mutate(MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
   ggplot(aes(Date, Eff, color = Top.Dress)) +
