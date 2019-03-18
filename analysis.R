@@ -1,4 +1,4 @@
-setwd("./files")
+setwd("C:/Users/Doug/Documents/PhD Papers/Tanner/cps-012")
 
 library(googlesheets)
 library(ggplot2)
@@ -6,7 +6,7 @@ library(ggthemes)
 library(dplyr)
 
 
-fl <- list.files()
+fl <- list.files("./files")
 
 for(i in fl) {
   header1 <- read.DIF(i, nrows = 1, header = F, transpose = TRUE)
@@ -37,7 +37,11 @@ t$Date <- as.Date(t$Date, "%m-%d-%Y")
 d <- merge(out, t, by=c("Date", "Animal.ID"))
 
 
-head(d)
+### Add cow info 
+cowAtts <- read.csv('cowAtts.csv')
+d <- merge(d, cowAtts[,c("ID","LacNO", "BW", "X.Fat", "X.Prt")], by.x = "Animal.ID", by.y = "ID")
+
+
 
 d %>% 
   mutate(DIM = as.numeric(DIM),
@@ -48,15 +52,25 @@ d %>%
          Top.Dress = as.factor(Top.Dress),
          TMR.Adjustment = as.numeric(TMR.Adjustment),
          NEl.Target = as.numeric(NEl.Target),
-         TMR.Target = as.numeric(TMR.Target)) %>%
+         TMR.Target = as.numeric(TMR.Target),
+         CG.Target = as.numeric(CG.Target),
+         SBM.Target = as.numeric(SBM.Target),
+         GH.Target = as.numeric(GH.Target),
+         Top.Dress.pct = (CG.Target+SBM.Target+GH.Target)/TMR.Target) %>%
   # 2x single milk measurements
   mutate(MY.adj = ifelse(is.na(MY.m1+MY.m2),
                          (ifelse(is.na(MY.m1),0,MY.m1)+ifelse(is.na(MY.m2),0,MY.m2))*2, MY),
          MY.adj = replace(MY.adj, MY.adj == 0, NA)) %>% 
-  mutate(MY.shift = lead(MY.adj, 1)) %>%
+  group_by(Animal.ID) %>%
+  mutate(MY.shift = lead(MY.adj, 1),
+         Refusal.shift= lead(Refusal..lbs.,1),
+         Eff = (Total.Actual-Refusal.shift)/MY.shift) %>%
+  data.frame() %>%
   group_by(Animal.ID) %>%
   mutate(MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
-  ggplot(aes(Date, MY.pct.max, color = Top.Dress)) +
+  ggplot(aes(Date, Eff, color = Top.Dress)) +
   geom_point() + 
-  facet_wrap(~Animal.ID)
+  facet_wrap(~Animal.ID) + 
+  geom_hline(yintercept = 1, lwd = 0.5, alpha = 0.5)+ 
+  geom_hline(yintercept = 1.5, lwd = 0.5, alpha = 0.75)
   
