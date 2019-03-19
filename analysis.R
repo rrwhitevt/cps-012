@@ -1,4 +1,4 @@
-setwd("C:/Users/Doug/Documents/PhD Papers/Tanner/cps-012")
+# setwd("C:/Users/Doug/Documents/PhD Papers/Tanner/cps-012")
 
 library(googlesheets)
 library(ggplot2)
@@ -6,7 +6,7 @@ library(ggthemes)
 library(dplyr)
 
 
-fl <- list.files("./files")
+fl <- list.files("./files",full.names = T)
 
 for(i in fl) {
   header1 <- read.DIF(i, nrows = 1, header = F, transpose = TRUE)
@@ -14,7 +14,7 @@ for(i in fl) {
   dt <- read.DIF(i, skip = 2, header=FALSE, transpose = TRUE)
   names(dt) <- trimws(paste(t(header1), t(header2)))
   
-  dt$Date <- paste(substring(i, 16, 17), "-", substring(i, 13, 14), "-", substring(i, 19, 22), sep="")
+  dt$Date <- paste(substring(i, 16+8, 17+8), "-", substring(i, 13+8, 14+8), "-", substring(i, 19+8, 22+8), sep="")
   
   if( i == fl[1]) {out <- dt} else {out <- rbind(out, dt)}
   
@@ -26,12 +26,14 @@ out <- subset(out, is.na(out$Index)==FALSE)
 out$Date <- as.Date(out$Date, "%m-%d-%Y")
 
 
+
 mysheets <- gs_ls()
 
 gsd1 <- (gs_title("E012 - Data"))
 
 t <- data.frame(gs_read(gsd1, ws="Intakes"))
 t$Date <- as.Date(t$Date, "%m-%d-%Y")
+# t$Animal.ID <- as.factor(t$Animal.ID)
 
 
 d <- merge(out, t, by=c("Date", "Animal.ID"))
@@ -64,20 +66,22 @@ d2 <- d %>%
   group_by(Animal.ID) %>%
   mutate(MY.shift = lead(MY.adj, 1),
          Refusal.shift= lead(Refusal..lbs.,1),
-         Eff = (Total.Actual-Refusal.shift)/MY.shift) %>%
+         Eff = (Total.Actual-Refusal.shift)/MY.shift,
+         Eff.max = Eff/max(Eff,na.rm = T)) %>%
   data.frame() 
-
-library(lme4)
-
-m1 <- lmer(Eff ~ Top.Dress + Top.Dress.pct + (1|LacNO)+ (1|Animal.ID), data = d2)
-summary(m1)
 
 %>%
   group_by(Animal.ID) %>%
   mutate(MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
-  ggplot(aes(Date, Eff, color = Top.Dress)) +
+  ggplot(aes(Date, Eff.max, color = Top.Dress)) +
   geom_point() + 
-  facet_wrap(~Animal.ID) + 
-  geom_hline(yintercept = 1, lwd = 0.5, alpha = 0.5)+ 
-  geom_hline(yintercept = 1.5, lwd = 0.5, alpha = 0.75)
+  facet_wrap(~Animal.ID)
+
+library(lme4)
+library(lmerTest)
+
+m1 <- lmer(Eff.max ~ TMR.Target+ CG.Target + SBM.Target + GH.Target + as.factor(LacNO) + (1|Animal.ID), data = d2)
+anova(m1)
+
+
   
