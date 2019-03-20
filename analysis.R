@@ -68,9 +68,7 @@ d2 <- d %>%
          Refusal.shift= lead(Refusal..lbs.,1),
          Eff = (Total.Actual-Refusal.shift)/MY.shift,
          Eff.max = Eff/max(Eff,na.rm = T)) %>%
-  data.frame() 
-
-%>%
+  data.frame() %>%
   group_by(Animal.ID) %>%
   mutate(MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
   ggplot(aes(Date, Eff.max, color = Top.Dress)) +
