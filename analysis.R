@@ -1,29 +1,53 @@
 # setwd("C:/Users/Doug/Documents/PhD Papers/Tanner/cps-012")
 
+# setwd("C:/Users/Doug/Documents/PhD Papers/Tanner/cps-012")
+# setwd("C:/Users/rrwhite/Dropbox/Tanners Cows")
+
 library(googlesheets)
 library(ggplot2)
 library(ggthemes)
 library(dplyr)
 
 
-fl <- list.files("./files",full.names = T)
+fl <- list.files()
+difs <- subset(fl, substring(fl, nchar(fl)-3,nchar(fl))==".dif")
+txts <- subset(fl, substring(fl, nchar(fl)-3, nchar(fl))==".Txt")
 
-for(i in fl) {
+for(i in txts) {
+  dt <- read.delim(i)
+  dt$Animal.ID <- substring(i, 1,4)
+  if(i == txts[1]) {nout <- dt} else {nout <- rbind(nout, dt)}
+}
+
+nout$Date <- paste(substring(nout$Date, 4,5), "-", substring(nout$Date, 1,2), "-", substring(nout$Date, 7,10), sep="")
+
+for(i in difs) {
   header1 <- read.DIF(i, nrows = 1, header = F, transpose = TRUE)
   header2 <- read.DIF(i, skip = 1, nrows = 1, header = F, transpose = TRUE)
   dt <- read.DIF(i, skip = 2, header=FALSE, transpose = TRUE)
   names(dt) <- trimws(paste(t(header1), t(header2)))
   
-  dt$Date <- paste(substring(i, 16+8, 17+8), "-", substring(i, 13+8, 14+8), "-", substring(i, 19+8, 22+8), sep="")
+  dt$Date <- paste(substring(i, 16, 17), "-", substring(i, 13, 14), "-", substring(i, 19, 22), sep="")
   
-  if( i == fl[1]) {out <- dt} else {out <- rbind(out, dt)}
+  if( i == difs[1]) {out <- dt} else if(length(header1)<15) {out <- rbind(out, dt)} else if(i == "C-D 3 G-8 - 19-03-2019 12-51.dif") {lout <- dt} else {lout<-rbind(lout, dt)}
   
 }
 
 names(out) <- c("Index", "Animal.ID", "Gyn", "Lact.no", "DIM","DDO", "MY.m1", "MY.m2", "MY", "Date")
-
 out <- subset(out, is.na(out$Index)==FALSE)
 out$Date <- as.Date(out$Date, "%m-%d-%Y")
+nout$Date <- as.Date(nout$Date, "%m-%d-%Y")
+out <- merge(out, nout, by=c("Animal.ID", "Date"))
+
+# Definitely took the quick-and-dirty here... need to get with Curtis about consistency in some of these variables (weight) because
+# The variables in what he sent today as historical output aren't match perfectly with what he is outputting for us daily 
+# Numbers are fine - he just outputted additional data in the individual cow outputs that isn't included in the daily data
+names(lout) <- c("Index", "Animal.ID", "Gyn", "Lact.no", "DIM", "DDO", "MY.m1", "MY.m2", "MY", "Protein", "Fat", "Blood", "Lactose", "Activity", "X", "Date")
+lout$Days <- NA
+lout$Milk <- as.numeric(lout$MY.m1)+as.numeric(lout$MY.m2)
+lout$Weight <- NA
+lout$Date <- as.Date(lout$Date, "%m-%d-%Y")
+out <- rbind(out, lout)
 
 
 
