@@ -7,17 +7,17 @@ library(ggthemes)
 library(dplyr)
 
 
-fl <- list.files()
+fl <- list.files("./files",full.names = T)
 difs <- subset(fl, substring(fl, nchar(fl)-3,nchar(fl))==".dif")
 txts <- subset(fl, substring(fl, nchar(fl)-3, nchar(fl))==".Txt")
 
 for(i in txts) {
   dt <- read.delim(i)
-  dt$Animal.ID <- substring(i, 1,4)
+  dt$Animal.ID <- substring(i, 9,12)
   if(i == txts[1]) {nout <- dt} else {nout <- rbind(nout, dt)}
 }
 
-nout$Date <- paste(substring(nout$Date, 4,5), "-", substring(nout$Date, 1,2), "-", substring(nout$Date, 7,10), sep="")
+nout$Date <- as.Date(nout$Date, "%d/%m/%Y") # paste(substring(nout$Date, 4,5), "-", substring(nout$Date, 1,2), "-", substring(nout$Date, 7,10), sep="")
 
 for(i in difs) {
   header1 <- read.DIF(i, nrows = 1, header = F, transpose = TRUE)
@@ -25,9 +25,17 @@ for(i in difs) {
   dt <- read.DIF(i, skip = 2, header=FALSE, transpose = TRUE)
   names(dt) <- trimws(paste(t(header1), t(header2)))
   
-  dt$Date <- paste(substring(i, 16, 17), "-", substring(i, 13, 14), "-", substring(i, 19, 22), sep="")
+  dt$Date <- paste(substring(i, 16+8, 17+8), "-", substring(i, 13+8, 14+8), "-", substring(i, 19+8, 22+8), sep="")
   
-  if( i == difs[1]) {out <- dt} else if(length(header1)<15) {out <- rbind(out, dt)} else if(i == "C-D 3 G-8 - 19-03-2019 12-51.dif") {lout <- dt} else {lout<-rbind(lout, dt)}
+  if( i == difs[1]) {
+    out <- dt
+  } else if(length(header1)<15) {
+      out <- rbind(out, dt)
+  } else if(i == "./files/C-D 3 G-8 - 19-03-2019 14-22.dif") {
+        lout <- dt
+  } else {
+          lout<-rbind(lout, dt)
+          }
   
 }
 
@@ -55,6 +63,7 @@ t$Date <- as.Date(t$Date, "%m-%d-%Y")
 
 d <- merge(out, t, by=c("Date", "Animal.ID"))
 
+head(d)
 
 d2 <- d %>% 
   mutate(DIM = as.numeric(DIM),
