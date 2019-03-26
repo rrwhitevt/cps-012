@@ -86,18 +86,26 @@ d2 <- d %>%
   group_by(Animal.ID) %>%
   mutate(MY.shift = lead(MY.adj, 1),
          Refusal.shift= lead(Refusal..lbs.,1),
-         Eff = (Total.Actual-Refusal.shift)/MY.shift,
-         Eff.max = Eff/max(Eff,na.rm = T)) %>%
-  data.frame() 
+         Eff = MY.shift/(Total.Actual-Refusal.shift),
+         EffR = (Eff-mean(Eff, na.rm=T))/sd(Eff, na.rm=T)
+         )
+d2 <- data.frame(d2)
+d2 <- subset(d2, d2$EffR<2.0 & d2$EffR>-2.0 & d2$Eff>0.2 & d2$Eff<1.2)
 
-
-%>%
+d2 <- d2 %>%
   group_by(Animal.ID) %>%
-  mutate(MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
+  mutate(
+  Eff.max= Eff/max(Eff, na.rm=T),
+  MY.pct.max = MY.adj/max(MY.adj, na.rm = T)) %>%
   ggplot(aes(Date, Eff.max, color = Top.Dress)) +
   geom_point() + 
   facet_wrap(~Animal.ID)
 
+d3 <- data.frame(d2$data)
+ggplot(d3, aes(Date, Eff.max, color = Top.Dress)) +
+  geom_point() + 
+  facet_wrap(~Animal.ID)
+  
 library(lme4)
 library(lmerTest)
 
